@@ -29,7 +29,7 @@ public class Tile implements Comparable<Tile> {
     private final Position position;
     private final Color color;
 
-    public Tile(final String[] row) throws IOException {
+    public Tile(final String[] row) {
         this.timestamp = Long.valueOf(row[0]);
         this.user = row[1];
         this.position = new Position(Integer.parseInt(row[2]), Integer.parseInt(row[3]));

@@ -1,9 +1,14 @@
 package com.lucaschilders;
 
 import com.google.common.base.Preconditions;
+import com.google.common.base.Stopwatch;
+import com.google.common.collect.Lists;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
+import java.time.Duration;
+import java.util.List;
+import java.util.concurrent.TimeUnit;
 import javax.imageio.ImageIO;
 import org.apache.log4j.BasicConfigurator;
 import org.apache.log4j.LogManager;
@@ -31,20 +36,35 @@ public class Main {
         LOGGER.info(String.format("Provided dataset location: [%s]", datasetPath));
 
         try {
+            final Stopwatch start = Stopwatch.createStarted();
             final Place place = new Place(datasetPath);
-            place.sortTiles();
+            place.sortTilesByTimeCreated();
 
-            place.generateStandardTileMap();
-            final BufferedImage image = place.generateImage();
-            LOGGER.info(String.format("Writing bitmap to %s", newImagePath));
-            ImageIO.write(image, "bmp", new File(newImagePath));
+            // draw it once per 10 minutes
+            final List<Integer> time = Lists.newArrayList();
+            for (int i = 0; i < 432; i++) {
+                time.add(i);
+            }
 
-            place.generateHeatmapTileMap();
-            final BufferedImage heatmap = place.generateHeatmap();
-            LOGGER.info(String.format("Writing heatmap bitmap to %s", newHeatMapPath));
-            ImageIO.write(heatmap, "bmp", new File(newHeatMapPath));
+            final String path = newImagePath.split("\\.bmp")[0];
+
+            time.parallelStream().forEach(t -> {
+                final BufferedImage image = place.drawBoard(place.generatePlaceBoard(), Duration.ofMinutes(t * 10));
+                LOGGER.info(String.format("Writing bitmap.", newImagePath));
+                try {
+                    ImageIO.write(image, "bmp", new File(String.format("%s%d.bmp", path, t * 10)));
+                }
+                catch (final IOException e) {
+                    LOGGER.error(e);
+                }
+            });
+
+//            final BufferedImage heatmap = place.drawHeatmap(place.generateHeatmapBoard());
+//            LOGGER.info(String.format("Writing heatmap bitmap to %s", newHeatMapPath));
+//            ImageIO.write(heatmap, "bmp", new File(newHeatMapPath));
+
+            LOGGER.info(String.format("Finished after %s seconds.", start.stop().elapsed(TimeUnit.SECONDS)));
         } catch (final IOException e) {
-            LOGGER.error(e);
-        }
+            LOGGER.error(e); }
     }
 }
